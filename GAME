@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Cookie Bot 3000 🍪 Ultimate Clone</title>
+<style>
+/* ----------------------
+   GLOBAL STYLES
+   ---------------------- */
+body {
+    margin: 0;
+    font-family: 'Arial', sans-serif;
+    background-color: #fdf6e3; /* soft bakery background */
+    color: #333;
+    user-select: none;
+}
+
+/* HEADER */
+header {
+    text-align: center;
+    padding: 20px;
+    background: linear-gradient(90deg, #f4c27d, #f7d7a3);
+    font-size: 2em;
+    font-weight: bold;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+/* COOKIE BUTTON */
+#cookie-container {
+    text-align: center;
+    margin-top: 20px;
+}
+#cookie {
+    width: 200px;
+    cursor: pointer;
+    transition: transform 0.1s, filter 0.1s;
+}
+#cookie:active {
+    transform: scale(0.95);
+    filter: brightness(1.2);
+}
+
+/* PANELS */
+.panel {
+    max-width: 900px;
+    margin: 20px auto;
+    padding: 15px;
+    border-radius: 8px;
+    background-color: #fff8f0;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+}
+.panel h2 {
+    margin-top: 0;
+    color: #c67c36;
+}
+
+/* BUTTONS */
+button {
+    margin: 4px;
+    padding: 6px 12px;
+    border-radius: 4px;
+    border: none;
+    cursor: pointer;
+    background-color: #f4c27d;
+    transition: background-color 0.2s;
+}
+button:hover {
+    background-color: #f2b75b;
+}
+
+/* FLOATING NUMBERS (click animation) */
+.floating-number {
+    position: absolute;
+    font-weight: bold;
+    color: #c85b4d;
+    pointer-events: none;
+    animation: floatUp 1s ease-out forwards;
+}
+@keyframes floatUp {
+    0% { opacity: 1; transform: translateY(0); }
+    100% { opacity: 0; transform: translateY(-50px); }
+}
+
+/* PROGRESS BAR */
+.progress-bar {
+    height: 20px;
+    background-color: #f4c27d;
+    border-radius: 10px;
+    overflow: hidden;
+}
+.progress-fill {
+    height: 100%;
+    background-color: #c85b4d;
+    width: 0%;
+    transition: width 0.3s;
+}
+</style>
+</head>
+<body>
+
+<header>Cookie Bot 3000 🍪 Ultimate Clone</header>
+
+<!-- MAIN COOKIE -->
+<div id="cookie-container">
+    <img id="cookie" src="https://i.imgur.com/7v5ASc8.png" alt="Cookie">
+    <div id="cookie-count">Cookies: 0</div>
+    <div id="cps">CPS: 0</div>
+</div>
+
+<!-- STATS PANEL -->
+<div class="panel" id="stats-panel">
+    <h2>Stats</h2>
+    <div id="level">Level: 1</div>
+    <div id="xp">XP: 0 / 10</div>
+    <div class="progress-bar"><div id="xp-fill" class="progress-fill"></div></div>
+</div>
+
+<!-- BUILDINGS PANEL -->
+<div class="panel" id="buildings-panel">
+    <h2>Buildings</h2>
+    <div id="buildings-list"></div>
+</div>
+
+<!-- UPGRADES PANEL -->
+<div class="panel" id="upgrades-panel">
+    <h2>Upgrades</h2>
+    <div id="upgrades-list"></div>
+</div>
+
+<!-- ACHIEVEMENTS PANEL -->
+<div class="panel" id="achievements-panel">
+    <h2>Achievements</h2>
+    <div id="achievements-list"></div>
+</div>
+
+<script>
+/* ----------------------
+   GAME VARIABLES
+   ---------------------- */
+// Total cookies
+let cookies = 0;
+// Cookies per second
+let cps = 0;
+// XP and Level
+let level = 1;
+let xp = 0;
+
+// ----------------------
+// BUILDINGS
+// Each building has:
+// name: string
+// baseCPS: cookies per second per unit
+// count: how many owned
+// cost: current cost
+// costMultiplier: scaling factor per purchase
+// ----------------------
+let buildings = [
+    {name:"Cursor", baseCPS:0.1, count:0, cost:15, costMultiplier:1.15},
+    {name:"Grandma", baseCPS:1, count:0, cost:100, costMultiplier:1.15},
+    {name:"Farm", baseCPS:8, count:0, cost:1100, costMultiplier:1.15},
+    {name:"Factory", baseCPS:47, count:0, cost:12000, costMultiplier:1.15},
+    {name:"Mine", baseCPS:260, count:0, cost:130000, costMultiplier:1.15},
+    {name:"Shipment", baseCPS:1400, count:0, cost:1400000, costMultiplier:1.15},
+    {name:"Alchemy Lab", baseCPS:7800, count:0, cost:20000000, costMultiplier:1.15},
+    {name:"Portal", baseCPS:44000, count:0, cost:330000000, costMultiplier:1.15},
+    {name:"Time Machine", baseCPS:260000, count:0, cost:5100000000, costMultiplier:1.15},
+    {name:"Antimatter Condenser", baseCPS:1600000, count:0, cost:75000000000, costMultiplier:1.15},
+    {name:"Prism", baseCPS:10000000, count:0, cost:1000000000000, costMultiplier:1.15},
+    {name:"Chancemaker", baseCPS:65000000, count:0, cost:14000000000000, costMultiplier:1.15},
+    {name:"Fractal Engine", baseCPS:430000000, count:0, cost:170000000000000, costMultiplier:1.15},
+    {name:"Javascript Console", baseCPS:2900000000, count:0, cost:2100000000000000, costMultiplier:1.15}
+];
+
+// ----------------------
+// UPGRADES
+// Each upgrade can affect a building or global CPS
+// purchased: boolean to prevent repeat purchase
+// multiplier: factor applied when purchased
+// ----------------------
+let upgrades = [
+    {name:"Reinforced index finger", building:"Cursor", multiplier:1.1, cost:100, purchased:false},
+    {name:"Carpal tunnel prevention cream", building:"Cursor", multiplier:1.1, cost:500, purchased:false}
+    // Add all additional original-style upgrades similarly
+];
+
+// ----------------------
+// ACHIEVEMENTS
+// Each achievement has:
+// name: string
+// unlocked: boolean
+// condition: function returning true when unlocked
+// ----------------------
+let achievements = [
+    {name:"First Cookie", unlocked:false, condition:()=>cookies>=1},
+    {name:"Getting Started", unlocked:false, condition:()=>cookies>=100},
+    {name:"Beginner's Luck", unlocked:false, condition:()=>cookies>=1000}
+    // Add remaining achievements
+];
+
+// ----------------------
+// DOM ELEMENTS
+// ----------------------
+const cookieEl = document.getElementById("cookie");
+const cookieCountEl = document.getElementById("cookie-count");
+const cpsEl = document.getElementById("cps");
+const buildingsListEl = document.getElementById("buildings-list");
+const upgradesListEl = document.getElementById("upgrades-list");
+const achievementsListEl = document.getElementById("achievements-list");
+const levelEl = document.getElementById("level");
+const xpEl = document.getElementById("xp");
+const xpFillEl = document.getElementById("xp-fill");
+
+// ----------------------
+// UPDATE DISPLAY FUNCTION
+// Updates cookie count, cps, building buttons, upgrades, achievements
+// ----------------------
+function updateDisplay() {
+    cookieCountEl.textContent = `Cookies: ${Math.floor(cookies)}`;
+    cpsEl.textContent = `CPS: ${cps.toFixed(1)}`;
+    levelEl.textContent = `Level: ${level}`;
+    xpEl.textContent = `XP: ${xp} / ${level*10}`;
+    xpFillEl.style.width = `${Math.min(100, (xp/(level*10))*100)}%`;
+
+    // Buildings
+    buildingsListEl.innerHTML = "";
+    buildings.forEach
